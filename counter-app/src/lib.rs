@@ -16,7 +16,7 @@ use ratatui::{
 
 #[derive(Debug, Default)]
 pub struct App {
-	counter: u8,
+	counter: i8,
 	exit: bool,
 }
 
