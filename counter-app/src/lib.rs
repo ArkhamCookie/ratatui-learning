@@ -21,15 +21,18 @@ pub struct App {
 }
 
 impl App {
+	/// Draws the render to terminal
 	fn draw(&self, frame: &mut Frame) {
 		frame.render_widget(self, frame.area());
 	}
 
+	/// Updates the applications's state based on user input
 	fn handle_events(&mut self) -> io::Result<()> {
 		// todo!()
 		Ok(())
 	}
 
+	/// Runs the application's main loop (until user quits)
 	pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
 		while !self.exit {
 			terminal.draw(|frame| self.draw(frame))?;
