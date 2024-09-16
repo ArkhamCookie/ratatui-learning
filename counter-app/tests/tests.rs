@@ -1,5 +1,5 @@
 #[cfg(test)]
-// use std;
+
 use counter_app::*;
 
 use ratatui::{
