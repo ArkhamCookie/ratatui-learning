@@ -1,5 +1,6 @@
 use std::{io, vec};
 
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
 	buffer::Buffer,
 	layout::{Alignment, Rect},
@@ -54,7 +55,7 @@ impl Widget for &App {
 			.title(
 				instructions
 					.alignment(Alignment::Center)
-					.position(Position::Bottom),	
+					.position(Position::Bottom),
 			)
 			.border_set(border::THICK);
 		let counter_text = Text::from(vec![Line::from(vec![
