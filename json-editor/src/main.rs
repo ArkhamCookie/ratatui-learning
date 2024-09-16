@@ -1,16 +1,100 @@
 use std::error::Error;
 use std::io;
 
-use json_editor::app::App;
+use json_editor::app::{App, CurrentScreen, CurrentlyEditing};
+use json_editor::ui::ui;
 
-use ratatui::{backend, crossterm::{
-	event::{DisableMouseCapture, EnableMouseCapture},
-	execute,
-	terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-}, prelude::{Backend, CrosstermBackend}, Terminal};
+use ratatui::{
+	crossterm::{
+		event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+		execute,
+		terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+	},
+	prelude::{Backend, CrosstermBackend},
+	Terminal,
+};
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool> {
-	todo!()
+	loop {
+		terminal.draw(|f| ui(f, app))?;
+
+		if let Event::Key(key) = event::read()? {
+			if key.kind == event::KeyEventKind::Release {
+				continue;
+			}
+			match app.current_screen {
+				CurrentScreen::Main => match key.code {
+					KeyCode::Char('e') => {
+						app.current_screen = CurrentScreen::Editing;
+						app.currently_editing = Some(CurrentlyEditing::Key);
+					}
+					KeyCode::Char('q') => {
+						app.current_screen = CurrentScreen::Exiting;
+					}
+					_ => {}
+				},
+
+				CurrentScreen::Exiting => match key.code {
+					KeyCode::Char('y') => {
+						return Ok(true);
+					}
+					KeyCode::Char('n') => {
+						return Ok(false);
+					}
+					_ => {}
+				},
+
+				CurrentScreen::Editing if key.kind == KeyEventKind::Press => match key.code {
+					KeyCode::Enter => {
+						if let Some(editing) = &app.currently_editing {
+							match editing {
+								CurrentlyEditing::Key => {
+									app.currently_editing = Some(CurrentlyEditing::Value);
+								}
+								CurrentlyEditing::Value => {
+									app.save_key_value();
+									app.current_screen = CurrentScreen::Main;
+								}
+							}
+						}
+					}
+					KeyCode::Backspace => {
+						if let Some(editing) = &app.currently_editing {
+							match editing {
+								CurrentlyEditing::Key => {
+									app.key_input.pop();
+								}
+								CurrentlyEditing::Value => {
+									app.value_input.pop();
+								}
+							}
+						}
+					}
+					KeyCode::Esc => {
+						app.current_screen = CurrentScreen::Main;
+						app.currently_editing = None;
+					}
+					KeyCode::Tab => {
+						app.toggle_editing();
+					}
+					KeyCode::Char(value) => {
+						if let Some(editing) = &app.currently_editing {
+							match editing {
+								CurrentlyEditing::Key => {
+									app.key_input.push(value);
+								}
+								CurrentlyEditing::Value => {
+									app.value_input.push(value);
+								}
+							}
+						}
+					}
+					_ => {}
+				},
+				_ => {}
+			}
+		}
+	}
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -30,9 +114,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	// Restore terminal
 	disable_raw_mode()?;
-	execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
+	execute!(
+		terminal.backend_mut(),
+		LeaveAlternateScreen,
+		DisableMouseCapture
+	)?;
 	terminal.show_cursor()?;
-
 
 	if let Ok(do_print) = res {
 		if do_print {
